@@ -1,0 +1,88 @@
+###################    User configurable options ####################
+#
+# 	Modify the variables in this section to match your build environment.
+#
+#   NOTES:
+#   Build targets:
+#			Just build (default all):>		nmake -f Make.MsWin64	
+#			Build all targets:>		  		nmake -f Make.MsWin64 all
+#			clean:							nmake -f Make.MsWin64 clean     
+#			debug:							nmake -f Make.MsWin64 DEBUG=1 all
+#     instrument for optimization:	nmake -f Make.MsWin64 INSTRUMENT=1 all
+#			optimize (PGO)				  	nmake -f Make.MsWin64 OPTIMIZE=1 all
+#
+
+THISFILE = Make.MsWin64
+MAKE = $(MAKE) /NOLOGO
+
+#	If building with the Win64 Platform SDK, also link with library "bufferoverflowU.lib"
+
+!ifdef MSSDK
+LIBS = "$(MSSDK)\lib\AMD64\bufferoverflowu.lib" User32.lib advapi32.lib
+!else
+LIBS = User32.lib advapi32.lib
+!endif
+
+!ifdef MSSDK
+MACHINE = AMD64
+FAVOR = 
+!else
+MACHINE = X64
+FAVOR = /favor:AMD64
+!endif
+
+!ifdef INSTRUMENT
+PGO = /LTCG:PGI
+!elseifdef OPTIMIZE
+PGO = /LTCG:PGO
+!else
+PGO = /LTCG
+!endif
+
+APPDEFS =  /D "_UNICODE" /D "UNICODE" /D _CRT_SECURE_NO_DEPRECATE /D WIN32
+
+!ifdef DEBUG
+CPPFLAGS = $(CFLAGS) $(FAVOR) /Zi $(APPDEFS) /EHsc /Wp64 /MTd /I $(CCP_INC)
+LFLAGS = $(LFLAGS) /DEBUG /MACHINE:$(MACHINE) /SUBSYSTEM:CONSOLE 
+!else 
+CPPFLAGS = $(CFLAGS) $(FAVOR) /O2 /GL $(APPDEFS) /EHsc /Wp64 /MT /I $(CCP_INC)
+LFLAGS = $(LFLAGS) $(PGO) /MACHINE:$(MACHINE) /SUBSYSTEM:CONSOLE 
+!endif
+
+
+####################################################################### 
+
+SRC1 = LargeMemSample1.cpp 
+OBJ1 = LargeMemSample1.obj
+
+SRC2 = LargeMemSample2.cpp
+OBJ2 = LargeMemSample2.obj
+
+
+default: all
+all: LARGEMEM_1 LARGEMEM_2     
+
+LARGEMEM_1: $(SRC1)  
+	$(MAKE) -f $(THISFILE) largememsample1.exe
+ 
+LARGEMEM_2: $(SRC2)  
+	$(MAKE) -f $(THISFILE) largememsample2.exe
+ 
+largememsample1.exe: $(OBJ1) 
+	LINK $(LFLAGS) /OUT:largememsample1.exe $** $(LIBS)
+
+largememsample2.exe: $(OBJ2) 
+	LINK $(LFLAGS) /OUT:largememsample2.exe $** $(LIBS)
+
+clean:
+	@del *.exe *.dll *.obj *.pdb *.ilk *.pgc *.pgd
+
+
+# DEPENDENCIES
+LargeMemSample1.obj:			LargeMemSample1.cpp
+LargeMemSample2.obj:			LargeMemSample2.cpp
+
+
+
+
+
